@@ -1,15 +1,16 @@
 const Koa = require('koa');
 const path = require('path');
-
 const views = require('koa-views');
 const _static = require('koa-static');
 const cors = require('@koa/cors');
 const koaBody = require('koa-body').default;
 const UserRouter = require('../utils/router.js');
+const errorHandler = require('../middlewares/errorHandler');
 
-const bin = new Koa();
+const app = new Koa();
+errorHandler(app);
 
-bin.use(
+app.use(
 	cors({
 		//设置允许来自指定域名请求
 		origin: (ctx) => {
@@ -22,9 +23,9 @@ bin.use(
 		exposeHeaders: ['WWW-Authenticate', 'Server-Authorization'], //设置获取其他自定义字段
 	})
 );
-bin.use(_static('./public'));
-bin.use(views(path.join(__dirname, '../views'), { extension: 'ejs' }));
-bin.use(
+app.use(_static('./public'));
+app.use(views(path.join(__dirname, '../views'), { extension: 'ejs' }));
+app.use(
 	koaBody({
 		multipart: true,
 		formidable: {
@@ -35,7 +36,9 @@ bin.use(
 		parsedMethods: ['POST', 'PUT', 'GET', 'DELETE'],
 	})
 );
-bin.use(UserRouter.allowedMethods());
-bin.use(UserRouter.routes());
-
-module.exports = bin;
+app.use(UserRouter.allowedMethods());
+app.use(UserRouter.routes());
+app.on('error', (err) => {
+	logger.error(err);
+});
+module.exports = app;
